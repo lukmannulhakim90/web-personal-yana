@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HNI Store (Simulasi)</title>
+    <style>
+        /* --- CSS STYLES --- */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .header { background-color: #008000; color: white; padding: 15px 20px; text-align: center; }
+        .navbar { display: flex; justify-content: center; background-color: #333; padding: 10px; }
+        .navbar a { color: white; padding: 8px 15px; text-decoration: none; text-align: center; border-radius: 5px; margin: 0 5px; transition: background-color 0.3s; }
+        .navbar a:hover { background-color: #555; }
+        .container { padding: 20px; max-width: 1200px; margin: auto; background-color: white; min-height: 80vh; }
+        
+        /* Katalog */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .product-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; text-align: center; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .product-card img { max-width: 100%; height: 100px; object-fit: contain; margin-bottom: 10px; }
+        .product-card h4 { margin-top: 0; color: #008000; }
+        .product-card .price { font-weight: bold; color: #ff5722; margin-bottom: 10px; }
+        .product-card button { background-color: #008000; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px; width: 100%; transition: background-color 0.3s; }
+        .product-card button:hover { background-color: #006400; }
+
+        /* Keranjang */
+        .cart-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .cart-table th, .cart-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .cart-table th { background-color: #f2f2f2; }
+        .cart-controls button { background-color: #ffc107; border: none; padding: 5px; cursor: pointer; border-radius: 3px; }
+        .cart-summary { text-align: right; margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+        .checkout-btn { background-color: #ff5722; color: white; padding: 15px 30px; border: none; cursor: pointer; border-radius: 5px; margin-top: 20px; }
+
+        /* Halaman Login */
+        .login-form { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .login-form input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .login-form button { background-color: #008000; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .login-form button.register { background-color: #006400; }
+
+        /* Tabs (Kategori) */
+        .tabs { overflow: hidden; border-bottom: 1px solid #ccc; margin-bottom: 20px; }
+        .tabs button { background-color: #f1f1f1; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; font-size: 17px; }
+        .tabs button:hover { background-color: #ddd; }
+        .tabs button.active { background-color: #ccc; }
+        .tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>HALAL NETWORK INTERNASIONAL (HNI) STORE</h1>
+    </div>
+
+    <div class="navbar" id="app-navbar" style="display: none;">
+        <a href="#katalog" onclick="showPage('katalog')">Katalog</a>
+        <a href="#keranjang" onclick="showPage('keranjang')">Keranjang (<span id="cart-count">0</span>)</a>
+        <a href="#riwayat" onclick="showPage('riwayat')">Riwayat</a>
+        <a href="#logout" onclick="logout()">Logout (<span id="user-name"></span>)</a>
+    </div>
+
+    <div class="container">
+        <div id="login-page" class="page">
+            <div class="login-form">
+                <h2>Login / Registrasi</h2>
+                <input type="text" id="name-input" placeholder="Nama (untuk Registrasi)">
+                <input type="email" id="email-input" placeholder="Email">
+                <input type="password" id="password-input" placeholder="Kata Sandi">
+                <button onclick="handleLogin()">LOGIN</button>
+                <button class="register" onclick="handleRegister()">REGISTRASI</button>
+                <p style="text-align: center; margin-top: 15px; font-size: 0.9em;">
+                    Simulasi: Setelah registrasi, silakan LOGIN dengan Email dan Kata Sandi yang sama.
+                </p>
+            </div>
+        </div>
+
+        <div id="katalog-page" class="page" style="display: none;">
+            <h2>Katalog Produk</h2>
+            <div class="tabs" id="category-tabs">
+                </div>
+            <div id="catalog-content">
+                </div>
+        </div>
+
+        <div id="keranjang-page" class="page" style="display: none;">
+            <h2>Keranjang Belanja</h2>
+            <div id="cart-details">
+                <p>Keranjang masih kosong.</p>
+            </div>
+            <div id="cart-footer">
+                <div class="cart-summary">Total: <span id="cart-total">Rp.0</span></div>
+                <button class="checkout-btn" onclick="showPage('checkout')">Lanjut ke Checkout</button>
+            </div>
+        </div>
+        
+        <div id="checkout-page" class="page" style="display: none;">
+            <h2>Checkout</h2>
+            <div id="checkout-summary"></div>
+            <h3>Pilih Metode Pembayaran</h3>
+            <label><input type="radio" name="payment" value="E-Wallet" checked> E-Wallet (OVO/Gopay/Dana)</label><br>
+            <label><input type="radio" name="payment" value="Transfer Bank"> Transfer Bank (BCA/Mandiri)</label><br>
+            <button class="checkout-btn" onclick="confirmOrder()">KONFIRMASI & BAYAR</button>
+        </div>
+
+        <div id="riwayat-page" class="page" style="display: none;">
+            <h2>Riwayat Pemesanan</h2>
+            <div id="order-history-details">
+                <p>Belum ada riwayat pesanan.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data Produk (Dikonversi dari Python ke JS Object)
+        const products = {
+            "Herbal": [
+                {"name": "Minyak Herbal Sinergi", "price": 45000, "description": "Melegakan pernapasan saat asma, meredakan pegal linu dan nyeri sendi, serta mengobati luka memar dan terkena air panas.", "image": "minyak herbal sinergi.png"},
+                {"name": "Gamat Kapsul", "price": 130000, "description": "Membantu meringankan gejala wasir dan memelihara kesehatan tubuh.", "image": "gamat.png"},
+                {"name": "Diabextrac", "price": 130000, "description": "Membantu meringankan gejala diabetes.", "image": "diabextrac.png"},
+                {"name": "Magafit", "price": 90000, "description": "Membantu memelihara kesehatan fungsi saluran pencernaan.", "image": "magafit.png"},
+                {"name": "Langsingin", "price": 120000, "description": "Membantu mengurangi lemak dan menurunkan berat badan.", "image": "langsingin.png"},
+                // --- Produk Baru Herbal ---
+                {"name": "Pasta Gigi Herbal Sensitif", "price": 23000, "description": "Membantu meredakan nyeri pada gigi sensitif dan menjaga kesegaran napas.", "image": "pasta gigi herbal sensitif.png"},
+                {"name": "Pasta Gigi Herbal Anak", "price": 13000, "description": "Formula lembut untuk membersihkan gigi anak dan mencegah gigi berlubang.", "image": "pasta gigi herbal anak.png"},
+                {"name": "Pasta Gigi Herbal Cengkeh & Propolis", "price": 20000, "description": "Membantu membersihkan gigi, mengurangi bau mulut, dan menjaga kesehatan gusi.", "image": "Pasta Gigi Herbal Cengkeh & Propolis.png"}
+            ],
+            "Kesehatan": [
+                {"name": "HNI Coffee", "price": 125000, "description": "Membantu meningkatkan stamina dan energi.", "image": "hni coffe (1).png"},
+                {"name": "Realco Ginseng Coffee", "price": 65000, "description": "Membantu meningkatkan stamina dan energi dengan kandungan ginseng.", "image": "realco gingseng coffe.png"},
+                {"name": "Sari Kurma", "price": 50000, "description": "Membantu memelihara kesehatan tubuh dan menambah energi.", "image": "sari kurma.png"},
+                {"name": "Susu Bubuk Full Cream", "price": 75000, "description": "Membantu memenuhi kebutuhan nutrisi tubuh.", "image": "susu bubuk.png"},
+                // --- Produk Baru Kesehatan ---
+                {"name": "HNI Health", "price": 80000, "description": "Suplemen yang membantu menjaga daya tahan tubuh dan kesehatan secara umum.", "image": "hni health.png"},
+                {"name": "Deep Olive", "price": 150000, "description": "Minyak zaitun murni yang bermanfaat untuk kesehatan jantung dan pencernaan.", "image": "deep olive.png"},
+                {"name": "Madu Pahit", "price": 120000, "description": "Madu dengan rasa pahit yang dipercaya membantu mengatasi diabetes dan meningkatkan vitalitas.", "image": "madu pahit.png"},
+                {"name": "Zidavit", "price": 80000, "description": "Membantu memelihara kesehatan mata dan meningkatkan nafsu makan.", "image": "zidavit.png"}
+            ],
+            "Kecantikan": [
+                {"name": "Sabun Kolagen", "price": 25000, "description": "Membantu membersihkan kulit tubuh dan melembabkan.", "image": "sabun kolagen.png"},
+                {"name": "Sabun Madu", "price": 20000, "description": "Membantu membersihkan kulit tubuh dan melembabkan dengan kandungan madu.", "image": "sabun madu.png"},
+                {"name": "Day Cream", "price": 75000, "description": "Membantu melindungi kulit dari efek buruk sinar matahari.", "image": "daycream.png"},
+                {"name": "Night Cream", "price": 85000, "description": "Membantu melembabkan kulit dan membuatnya tetap sehat.", "image": "night cream.png"},
+                // --- Produk Baru Kecantikan ---
+                {"name": "Creamy Facial Foam", "price": 35000, "description": "Membersihkan wajah dari kotoran dan minyak berlebih tanpa membuat kulit kering.", "image": "creamy facial foam.png"},
+                {"name": "HNI Bodylotion", "price": 42000, "description": "Melembabkan dan menutrisi kulit tubuh agar tampak lebih sehat.", "image": "HNI Body Lotion.png"},
+                {"name": "Sterilyn Sanitizer", "price": 80000, "description": "Cairan pembersih tangan yang efektif membunuh kuman.", "image": "sterilyn sanitizer.png"},
+                {"name": "Moisturizing Gel", "price": 48000, "description": "Gel ringan untuk hidrasi kulit wajah, cocok untuk kulit berminyak.", "image": "HNI Moisturizing Gel.png"},
+                {"name": "Green Wash Detergen", "price": 42000, "description": "Detergen konsentrat yang efektif membersihkan noda pada pakaian.", "image": "Greenwash Detergen.png"},
+                {"name": "Bright Care Face Wash", "price": 45000, "description": "Sabun wajah untuk mencerahkan kulit kusam dan mengangkat sel kulit mati.", "image": "Khanin Bright Care Face Wash.png"},
+                {"name": "Bright Moist Face Serum", "price": 70000, "description": "Serum wajah untuk melembabkan intensif dan membuat kulit tampak bercahaya.", "image": "Khanin Bright Moist Face Serum.png"}
+            ],
+            "Kesehatan Wanita": [
+                {"name": "Harumi", "price": 70000, "description": "Membantu memelihara kesehatan kewanitaan dan mengurangi lendir yang berlebihan.", "image": "harumi.png"},
+                {"name": "Hibis", "price": 225000, "description": "Membantu memelihara kesehatan kewanitaan dan membuat tubuh tetap sehat.", "image": "hibis.png"}
+            ]
+        };
+
+        // Variabel Global
+        let currentUser = null;
+        let cart = {}; // {productName: {product: {...}, quantity: 1}}
+
+        // --- Persistensi Data (Simulasi menggunakan LocalStorage) ---
+        function loadData(key, defaultValue = {}) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : defaultValue;
+        }
+
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        let users = loadData('hni_users');
+        let orders = loadData('hni_orders', []);
+
+
+        // --- FUNGSI UTILITAS ---
+        function formatRupiah(angka) {
+            return "Rp." + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        function getAllProducts() {
+            let all = [];
+            for (let category in products) {
+                all = all.concat(products[category]);
+            }
+            return all;
+        }
+
+        // --- FUNGSI NAVIGASI ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById(`${pageId}-page`).style.display = 'block';
+
+            // Refresh konten saat berpindah halaman
+            if (pageId === 'katalog') {
+                createCategoryTabs();
+                openCategory('Herbal'); // Default category
+            } else if (pageId === 'keranjang') {
+                renderCart();
+            } else if (pageId === 'checkout') {
+                renderCheckout();
+            } else if (pageId === 'riwayat') {
+                renderOrderHistory();
+            }
+        }
+
+        // --- LOGIN / REGISTRASI ---
+        function handleLogin() {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+
+            if (users[email] && users[email].password === password) {
+                currentUser = users[email];
+                document.getElementById('user-name').textContent = currentUser.name;
+                document.getElementById('app-navbar').style.display = 'flex';
+                showPage('katalog');
+                alert(`Selamat datang, ${currentUser.name}!`);
+            } else {
+                alert('Login Gagal: Email atau Kata Sandi salah!');
+            }
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('name-input').value;
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+
+            if (!name || !email || !password) {
+                alert('Registrasi Gagal: Semua kolom harus diisi!');
+                return;
+            }
+            if (users[email]) {
+                alert('Registrasi Gagal: Email sudah terdaftar!');
+                return;
+            }
+
+            users[email] = { name: name, email: email, password: password, orders: [] };
+            saveData('hni_users', users);
+            alert('Registrasi berhasil! Silakan Login.');
+            // Bersihkan input nama setelah registrasi
+            document.getElementById('name-input').value = '';
+        }
+
+        function logout() {
+            currentUser = null;
+            cart = {};
+            document.getElementById('app-navbar').style.display = 'none';
+            document.getElementById('email-input').value = '';
+            document.getElementById('password-input').value = '';
+            showPage('login');
+        }
+
+        // --- KATALOG PRODUK ---
+        function createCategoryTabs() {
+            const tabsContainer = document.getElementById('category-tabs');
+            tabsContainer.innerHTML = ''; // Bersihkan
+
+            for (let category in products) {
+                const button = document.createElement('button');
+                button.textContent = category;
+                button.onclick = () => openCategory(category);
+                tabsContainer.appendChild(button);
+            }
+        }
+
+        function openCategory(categoryName) {
+            const tabs = document.querySelectorAll('#category-tabs button');
+            tabs.forEach(btn => {
+                if (btn.textContent === categoryName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const content = document.getElementById('catalog-content');
+            content.innerHTML = `<div class="product-grid"></div>`; // Bersihkan dan buat grid baru
+            const grid = content.querySelector('.product-grid');
+            
+            products[categoryName].forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}" onerror="this.onerror=null;this.src='placeholder.png';">
+                    <h4>${product.name}</h4>
+                    <p class="price">${formatRupiah(product.price)}</p>
+                    <p style="font-size:0.9em;">${product.description.substring(0, 70)}...</p>
+                    <button onclick="addToCart('${product.name}')">Tambah ke Keranjang</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function addToCart(productName) {
+            const product = getAllProducts().find(p => p.name === productName);
+            let quantity = parseInt(prompt(`Masukkan jumlah ${productName}:`, 1));
+
+            if (quantity && quantity > 0) {
+                if (cart[productName]) {
+                    cart[productName].quantity += quantity;
+                } else {
+                    cart[productName] = { product: product, quantity: quantity };
+                }
+                document.getElementById('cart-count').textContent = Object.keys(cart).length;
+                alert(`${quantity}x ${productName} ditambahkan ke keranjang!`);
+            }
+        }
+
+        // --- KERANJANG BELANJA ---
+        function renderCart() {
+            const cartDetails = document.getElementById('cart-details');
+            const cartTotal = document.getElementById('cart-total');
+            let total = 0;
+
+            if (Object.keys(cart).length === 0) {
+                cartDetails.innerHTML = '<p>Keranjang masih kosong.</p>';
+                cartTotal.textContent = formatRupiah(0);
+                document.getElementById('cart-count').textContent = 0;
+                return;
+            }
+
+            let tableHTML = `
+                <table class="cart-table">
+                    <tr>
+                        <th>Produk</th>
+                        <th>Harga Satuan</th>
+                        <th>Jumlah</th>
+                        <th>Subtotal</th>
+                        <th>Aksi</th>
+                    </tr>
+            `;
+
+            for (let name in cart) {
+                const item = cart[name];
+                const subtotal = item.product.price * item.quantity;
+                total += subtotal;
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.product.name}</td>
+                        <td>${formatRupiah(item.product.price)}</td>
+                        <td>
+                            <span class="cart-controls">
+                                <button onclick="updateCartQuantity('${name}', -1)">-</button>
+                                ${item.quantity}
+                                <button onclick="updateCartQuantity('${name}', 1)">+</button>
+                            </span>
+                        </td>
+                        <td>${formatRupiah(subtotal)}</td>
+                        <td><button style="background-color: #f44336;" onclick="removeItemFromCart('${name}')">Hapus</button></td>
+                    </tr>
+                `;
+            }
+
+            tableHTML += `</table>`;
+            cartDetails.innerHTML = tableHTML;
+            cartTotal.textContent = formatRupiah(total);
+            document.getElementById('cart-count').textContent = Object.keys(cart).length;
+        }
+
+        function updateCartQuantity(name, delta) {
+            const newQuantity = cart[name].quantity + delta;
+            if (newQuantity <= 0) {
+                removeItemFromCart(name);
+            } else {
+                cart[name].quantity = newQuantity;
+                renderCart();
+            }
+        }
+
+        function removeItemFromCart(name) {
+            if (confirm(`Yakin ingin menghapus ${name} dari keranjang?`)) {
+                delete cart[name];
+                renderCart();
+            }
+        }
+
+        // --- CHECKOUT ---
+        function renderCheckout() {
+            const summary = document.getElementById('checkout-summary');
+            let total = 0;
+            for (let name in cart) {
+                total += cart[name].product.price * cart[name].quantity;
+            }
+            summary.innerHTML = `<h3>Total Pembayaran: <span style="color: red;">${formatRupiah(total)}</span></h3>`;
+        }
+
+        function confirmOrder() {
+            if (Object.keys(cart).length === 0) {
+                alert('Keranjang kosong! Tidak bisa checkout.');
+                showPage('katalog');
+                return;
+            }
+
+            const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+            const orderId = new Date().getTime(); // ID pesanan unik
+            let total = 0;
+
+            const items = Object.values(cart).map(item => {
+                const subtotal = item.product.price * item.quantity;
+                total += subtotal;
+                return { 
+                    name: item.product.name, 
+                    price: item.product.price, 
+                    quantity: item.quantity,
+                    subtotal: subtotal
+                };
+            });
+
+            const order = {
+                id: orderId,
+                userEmail: currentUser.email,
+                date: new Date().toLocaleString(),
+                total: total,
+                method: paymentMethod,
+                items: items,
+                status: 'Menunggu Pembayaran',
+                // Simulasi data QR Code
+                qrData: `ID:${orderId}|User:${currentUser.name}|Total:${total}|Metode:${paymentMethod}`
+            };
+
+            orders.unshift(order); // Tambahkan ke awal riwayat
+            saveData('hni_orders', orders);
+            cart = {}; // Kosongkan keranjang
+
+            alert(`Pesanan #${orderId} berhasil dibuat!\nTotal: ${formatRupiah(total)}\nPembayaran via: ${paymentMethod}\n\n[SIMULASI QR CODE]\nDetail QR: ${order.qrData}`);
+            
+            showPage('riwayat');
+        }
+
+        // --- RIWAYAT PEMESANAN ---
+        function renderOrderHistory() {
+            const historyDetails = document.getElementById('order-history-details');
+            historyDetails.innerHTML = '';
+
+            const userOrders = orders.filter(o => o.userEmail === currentUser.email);
+
+            if (userOrders.length === 0) {
+                historyDetails.innerHTML = '<p>Anda belum memiliki riwayat pemesanan.</p>';
+                return;
+            }
+
+            userOrders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.style.textAlign = 'left';
+                card.innerHTML = `
+                    <h4>Pesanan #${order.id}</h4>
+                    <p>Tanggal: ${order.date}</p>
+                    <p>Total: <span class="price">${formatRupiah(order.total)}</span></p>
+                    <p>Metode: ${order.method}</p>
+                    <p>Status: <span style="color: orange; font-weight: bold;">${order.status}</span></p>
+                    <button style="background-color: #1e88e5;" onclick="alert('Detail Pesanan:\\n${order.items.map(i => i.name + ' x' + i.quantity).join('\\n')}\\n\\n[DATA QR] ${order.qrData}')">Lihat Detail & QR</button>
+                `;
+                historyDetails.appendChild(card);
+            });
+        }
+        
+        // --- INISIALISASI ---
+        // Jalankan saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            if (currentUser) {
+                // Jika ada user di sesi (simulasi)
+                document.getElementById('user-name').textContent = currentUser.name;
+                document.getElementById('app-navbar').style.display = 'flex';
+                showPage('katalog');
+            } else {
+                showPage('login');
+            }
+        });
+    </script>
+
+</body>
+</html>
